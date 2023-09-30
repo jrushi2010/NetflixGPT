@@ -1,15 +1,23 @@
 import React, { useRef, useState } from 'react';
 import Header from './Header';
 import { checkValidData } from '../utils/validate';
-import {createUserWithEmailAndPassword } from "firebase/auth";
-import {signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { updateProfile } from "firebase/auth";
+
 import { auth } from '../utils/firebase';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { addUser } from '../utils/userSlice';
 
 const Login = () => {
 
   const [isSignIn, setIsSignIn] = useState();
   const [errorMsg, setErrorMsg] = useState(null);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
+  const name = useRef();
   const email = useRef(null);
   const password = useRef(null);
 
@@ -30,8 +38,18 @@ const Login = () => {
         .then((userCredential) => {
           // Signed up 
           const user = userCredential.user;
-          console.log(user);
-          // ...
+          //updating the profile with name
+          updateProfile(user, {
+            displayName: name.current.value, photoURL: ""
+          }).then(() => {
+            console.log(user);
+            const { uid, email, displayName } = auth.currentUser;
+            dispatch(addUser({ uid: uid, email: email, displayName: displayName }));
+            navigate("/browse");
+          }).catch((error) => {
+            setErrorMsg(error.message);
+          });
+
         })
         .catch((error) => {
           const errorCode = error.code;
@@ -47,6 +65,7 @@ const Login = () => {
           // Signed in 
           const user = userCredential.user;
           console.log(user);
+          navigate("/browse");
           // ...
         })
         .catch((error) => {
@@ -71,6 +90,8 @@ const Login = () => {
       }} className='absolute p-12 text-white bg-black w-3/12 my-36 mx-auto right-0 left-0 bg-opacity-80'>
 
         <h1 className='font-bold text-3xl py-4'>{isSignIn ? "Sign In " : "Sign Up"}</h1>
+
+        {!isSignIn && <input ref={name} className='p-4 my-2 w-full bg-gray-700' type='text' placeholder='Full Name' />}
 
         <input ref={email} className='p-4 my-4 w-full bg-gray-700 ' type='text' placeholder='Email Address' />
 
